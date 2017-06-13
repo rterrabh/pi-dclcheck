@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Main-Class: pidclcheck.main.Main
+Class-Path: commons-io-2.5.jar
