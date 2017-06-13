@@ -1,8 +1,10 @@
 package pidclcheck.main;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 
 import pidclcheck.core.Architecture;
@@ -17,29 +19,28 @@ public class Main {
 			return;
 		}
 		
-		String constraintsFile = args[0];
-		String folderDir = args[1];
-		String dependenciesFile = args[2];
+		String constraintsFileName = args[0];
+		String folderDirName = args[1];
+		String dependenciesFileName = args[2];
 		
-		Architecture arch;
+		File dependenciesFile = new File(folderDirName + File.separator + dependenciesFileName);
+		File constraintsFile = new File(folderDirName + File.separator + constraintsFileName);
+		
+		
+		Collection<ArchitecturalDrift> violations;
 		try {
-			arch = new Architecture(new File(folderDir + File.separator + dependenciesFile), 
-					new File(folderDir + File.separator + constraintsFile));		
+			violations = validateLocalArchitecture(new FileInputStream(dependenciesFile), new FileInputStream(constraintsFile));
 		} catch (ParseException e) {
 			System.out.println("Problem when parsing. Cause: " + e.getMessage());
 			return;
 		} catch (IOException e) {
 			System.out.println("Problem when reading file. Cause: " + e.getMessage());
 			return;
-		}		
-		
-		Collection<ArchitecturalDrift> violations = arch.validate();
-		
+		}
 		
 		try {
-			File f = new File(folderDir + File.separator + "violations.txt");
+			File f = new File(folderDirName + File.separator + "violations.txt");
 			FileWriter writer = new FileWriter(f);
-			
 
 			for (ArchitecturalDrift ad : violations){
 				writer.write(ad.getInfoMessage() + ",[" + ad.getViolatedConstraint() + "]\n");
@@ -51,6 +52,23 @@ public class Main {
 			return;
 		}
 		
+	}
+
+	/**
+	 * Public method that receives the dependencies and the DCL constraints and returns the detected violations. 
+	 * @param dependenciesIn Stream that has the content of the 'dependencies.txt' file
+	 * @param constraintsIn Stream that has the content of the DCL constraints file.
+	 * @return List of violations
+	 * @throws ParseException When parsing of DCL constraints file fails. 
+	 * @throws IOException When occurs IO errors.
+	 * @author Ricardo Terra
+	 */
+	public static Collection<ArchitecturalDrift> validateLocalArchitecture(InputStream dependenciesIn, InputStream constraintsIn) throws ParseException, IOException {
+		Architecture arch;
+		
+		arch = new Architecture(dependenciesIn, constraintsIn);			
+		
+		return arch.validate();
 	}
 	
 }

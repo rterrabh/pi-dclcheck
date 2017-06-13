@@ -48,7 +48,7 @@ public class DCLParser {
 			} catch (Exception e) {
 				throw new ParseException(e, line, lnr.getLineNumber());
 			}
-		}		
+		}
 
 		return moduleDescriptions;
 	}

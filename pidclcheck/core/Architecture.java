@@ -1,10 +1,11 @@
 package pidclcheck.core;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,7 +41,7 @@ public class Architecture {
 	 */
 	public Collection<DependencyConstraint> dependencyConstraints = null;	
 	
-	public Architecture(File dependenciesFile, File constraintsFile) throws ParseException, IOException {
+	public Architecture(final InputStream dependenciesIn, final InputStream constraintsIn) throws ParseException, IOException {
 		if (DEBUG) {
 			System.out.println("Time BEFORE generate architecture (without dependencies): " + new Date());
 		}
@@ -48,8 +49,8 @@ public class Architecture {
 		this.modules = new ConcurrentHashMap<String, String>();
 
 		
-		this.initializeDependencies(dependenciesFile);
-		this.initializeDependencyConstraints(constraintsFile);
+		this.initializeDependencies(dependenciesIn);
+		this.initializeDependencyConstraints(constraintsIn);
 		
 		if (DEBUG) {
 			System.out.println("Time AFTER generate architecture (without dependencies): " + new Date());
@@ -57,8 +58,8 @@ public class Architecture {
 	}
 	
 
-	private void initializeDependencies(final File dependenciesFile) throws ParseException, FileNotFoundException, IOException {
-		LineNumberReader reader = new LineNumberReader(new FileReader(dependenciesFile));
+	private void initializeDependencies(final InputStream in) throws ParseException, FileNotFoundException, IOException {
+		LineNumberReader reader = new LineNumberReader(new InputStreamReader(in));
 		while (reader.ready()){
 			String[] line = reader.readLine().split(",");
 			String sourceClass = line[0];
@@ -74,17 +75,22 @@ public class Architecture {
 	}
 	
 	
-	private void initializeDependencyConstraints(final File dcFile) throws ParseException, FileNotFoundException, IOException {
-		this.modules.putAll(DCLParser.parseModules(new FileInputStream(dcFile)));
-
+	private void initializeDependencyConstraints(final InputStream in) throws ParseException, FileNotFoundException, IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		org.apache.commons.io.IOUtils.copy(in, baos);
+		byte[] bytes = baos.toByteArray();
+		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+		
+		this.modules.putAll(DCLParser.parseModules(bais));
+		
 		/* Define implicit modules */
 		this.modules.put("$java", DCLUtil.getJavaModuleDefinition());
 		/*
 		 * Module $system has its behavior in
 		 * DCLUtil.hasClassNameByDescription
 		 */
-
-		this.dependencyConstraints = DCLParser.parseDependencyConstraints(new FileInputStream(dcFile));
+		bais.reset();
+		this.dependencyConstraints = DCLParser.parseDependencyConstraints(bais);
 		
 	}
 
